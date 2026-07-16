@@ -67,3 +67,4 @@ exports/
 check-models.js
 test-workflow.ps1
 deploy.sh
+.env.production
