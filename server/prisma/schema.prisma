@@ -1,0 +1,82 @@
+// Prisma schema for Text2Learn database
+// Defines User, Course, and Lesson models
+
+generator client {
+  provider = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-1.1.x", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User model for authentication
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name         String
+  password     String?
+  authProvider String   @default("email") // "email" or "google"
+  googleId     String?  @unique
+  courses   Course[]
+  jobs      Job[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+// Course model stores generated course outlines
+model Course {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  description String   @db.Text
+  outline     Json     // Stores CourseOutline as JSON
+  shareId     String?  @unique // Unique ID for public sharing
+  language    String?  @default("en") // Course language (en, hi, es, fr, de)
+  lessons     Lesson[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([shareId])
+  @@map("courses")
+}
+
+// Lesson model stores generated lesson content
+model Lesson {
+  id          String   @id @default(cuid())
+  courseId    String
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  moduleIndex Int      // Which module this lesson belongs to (0-indexed)
+  lessonIndex Int      // Position within the module (0-indexed)
+  title       String
+  content     Json     // Stores LessonContent as JSON
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([courseId, moduleIndex, lessonIndex])
+  @@index([courseId])
+  @@map("lessons")
+}
+
+// Job model tracks async AI generation tasks
+model Job {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String   // e.g., "course_generation", "lesson_generation"
+  status    String   @default("WAITING") // WAITING, ACTIVE, COMPLETED, FAILED
+  data      Json     // Input data for the job
+  result    Json?    // Result of the job when completed
+  error     String?  // Error message if failed
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@map("jobs")
+}
