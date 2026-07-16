@@ -26,6 +26,7 @@ const corsOptions = {
     const allowedOrigins = [
       'http://localhost:5173',
       'http://localhost:5174',
+      'https://text2-learn-six.vercel.app',
       process.env.CLIENT_URL
     ].filter(Boolean);
     
